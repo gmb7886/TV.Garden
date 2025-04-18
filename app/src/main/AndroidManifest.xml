@@ -3,6 +3,8 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
@@ -13,14 +15,14 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TV.Garden"
+        android:theme="@style/Theme.ColégioEtapa"
         tools:targetApi="31">
 
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:theme="@style/Theme.TV.Garden">
+            android:theme="@style/Theme.ColégioEtapa">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -33,7 +35,12 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="http" android:host="tv.garden/"/>
+                <data android:scheme="http" android:host="areaexclusiva.colegioetapa.com.br"/>
+                <data android:scheme="https" android:host="areaexclusiva.colegioetapa.com.br"/>
+                <data android:scheme="http" android:host="material.etapadigital.com.br"/>
+                <data android:scheme="https" android:host="material.etapadigital.com.br"/>
+                <data android:scheme="http" android:host="www.etapalink.com.br"/>
+                <data android:scheme="https" android:host="www.etapalink.com.br"/>
             </intent-filter>
         </activity>
 

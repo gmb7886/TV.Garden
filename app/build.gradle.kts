@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.marinov.tvgarden"
+    namespace = "com.marinov.colegioetapa"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.marinov.tvgarden"
+        applicationId = "com.marinov.colegioetapa"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
