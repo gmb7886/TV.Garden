@@ -28,7 +28,7 @@ import android.net.NetworkInfo;
 public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
-    private static final String URL = "https://areaexclusiva.colegioetapa.com.br/";
+    private static final String URL = "https://areaexclusiva.colegioetapa.com.br/home";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
