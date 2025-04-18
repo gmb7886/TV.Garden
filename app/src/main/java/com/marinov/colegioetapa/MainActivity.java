@@ -2,28 +2,28 @@ package com.marinov.colegioetapa;
 
 import android.app.DownloadManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.CookieManager;
+import android.webkit.CookieSyncManager;
 import android.webkit.URLUtil;
-import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
-import androidx.core.view.OnApplyWindowInsetsListener;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.content.SharedPreferences;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -52,16 +52,40 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Configurações básicas do WebView
         WebSettings settings = webView.getSettings();
-        settings.setJavaScriptEnabled(true); // Habilitar JavaScript, mas com moderação
+        settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-
-        // Permitir carregamento de imagens e outros recursos
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
+
+        // --- Configuração de cookies ---
+        final CookieManager cookieManager = CookieManager.getInstance();
+        cookieManager.setAcceptCookie(true);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            cookieManager.setAcceptThirdPartyCookies(webView, true);
+        } else {
+            CookieSyncManager.createInstance(this);
+            CookieSyncManager.getInstance().startSync();
+        }
+
+        // Restaurar cookies salvos, se houver
+        final SharedPreferences prefs = getSharedPreferences("cookies", MODE_PRIVATE);
+        String savedCookies = prefs.getString("saved_cookies", null);
+        if (savedCookies != null) {
+            for (String cookie : savedCookies.split(";")) {
+                cookieManager.setCookie(URL, cookie.trim());
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                cookieManager.flush();
+            } else {
+                CookieSyncManager.getInstance().sync();
+            }
+        }
+        // --------------------------------
 
         // Verificar se há conexão de rede antes de carregar o site
         if (isNetworkAvailable()) {
@@ -70,8 +94,22 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Sem conexão de rede!", Toast.LENGTH_SHORT).show();
         }
 
-        // Navegação interna e tratamento de erros
+        // Navegação interna, tratamento de erros e persistência de cookies
         webView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                // Sincroniza cookies para armazenamento
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    cookieManager.flush();
+                } else {
+                    CookieSyncManager.getInstance().sync();
+                }
+                // Salva cookies no SharedPreferences
+                String allCookies = cookieManager.getCookie(URL);
+                prefs.edit().putString("saved_cookies", allCookies).apply();
+            }
+
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 super.onReceivedError(view, request, error);
@@ -81,7 +119,6 @@ public class MainActivity extends AppCompatActivity {
 
         // Configura download no WebView
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
-            // Cria uma requisição de download
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
             request.setMimeType(mimeType);
             request.addRequestHeader("User-Agent", userAgent);
@@ -92,18 +129,14 @@ public class MainActivity extends AppCompatActivity {
             request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,
                     URLUtil.guessFileName(url, contentDisposition, mimeType));
 
-            // Inicia o download
             DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
             dm.enqueue(request);
-
-            // Exibe uma notificação
             Toast.makeText(getApplicationContext(), "Download iniciado...", Toast.LENGTH_LONG).show();
         });
     }
 
     @Override
     public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
-        // Volta no histórico do WebView se possível
         if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
             webView.goBack();
             return true;
@@ -114,26 +147,23 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        // Pausa o WebView quando o app não está em primeiro plano
         if (webView != null) {
             webView.onPause();
-            webView.pauseTimers();  // Pausa os timers do WebView
+            webView.pauseTimers();
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Retoma o WebView quando o app volta ao primeiro plano
         if (webView != null) {
             webView.onResume();
-            webView.resumeTimers();  // Retoma os timers do WebView
+            webView.resumeTimers();
         }
     }
 
     @Override
     protected void onDestroy() {
-        // Limpeza do WebView para evitar vazamentos de memória
         if (webView != null) {
             webView.loadUrl("about:blank");
             webView.clearHistory();
