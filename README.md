@@ -13,7 +13,7 @@ Meu cliente alternativo para acessar https:// areaexclusiv@ . colegio etap@ . co
   6. Abre links externos (de outros apps) relacionados ao Et@p@.
 
 🚫 A SER IMPLEMENTADO NO FUTURO:
-  1. Login persistente;
+  1. Login persistente (parcialmente corrigido, ainda é preciso logar novamente após algumas horas);
   2. EADs em tela cheia.
 
 Bom proveito!
