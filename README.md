@@ -5,15 +5,15 @@
 Meu cliente alternativo para acessar https:// areaexclusiv@ . colegio etap@ . com .br / em dispositivos Android, com funcionalidades extras ao aplicativo original.
 
 ✅ FUNCIONALIDADES:
-  1. Acesso ao Et@p@ Digit@l
-  2. Acesso ao Et@p@ Link
-  3. Gráficos de desempenho PG e simulados
-  4. Download das provas, gabaritos e resoluções.
-  5. Amigável para tablets (pode funcionar na horizontal) (NÃO TESTADO).
+  1. Acesso ao Et@p@ Digit@l;
+  2. Acesso ao Et@p@ Link;
+  3. Gráficos de desempenho PG e simulados;
+  4. Download das provas, gabaritos e resoluções;
+  5. Amigável para tablets (pode funcionar na horizontal) (NÃO TESTADO);
   6. Abre links externos (de outros apps) relacionados ao Et@p@.
 
 🚫 A SER IMPLEMENTADO NO FUTURO:
-  1. Login persistente.
+  1. Login persistente;
   2. EADs em tela cheia.
 
 Bom proveito!
