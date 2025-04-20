@@ -1,6 +1,8 @@
 package com.marinov.colegioetapa;
 
+import android.Manifest;
 import android.app.DownloadManager;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,6 +20,8 @@ import android.webkit.WebViewClient;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -26,6 +30,9 @@ import android.net.NetworkInfo;
 import android.content.SharedPreferences;
 
 public class MainActivity extends AppCompatActivity {
+    private static final int REQUEST_STORAGE_PERMISSION = 100;
+    private static final String PREFS_PERMISSIONS = "app_permissions";
+    private static final String KEY_ASKED_STORAGE = "asked_storage_permission";
 
     private WebView webView;
     private static final String URL = "https://areaexclusiva.colegioetapa.com.br/home";
@@ -34,6 +41,23 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Solicita permissão de armazenamento na primeira abertura (Android 10 ou inferiores)
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+            SharedPreferences permPrefs = getSharedPreferences(PREFS_PERMISSIONS, MODE_PRIVATE);
+            boolean asked = permPrefs.getBoolean(KEY_ASKED_STORAGE, false);
+            if (!asked) {
+                permPrefs.edit().putBoolean(KEY_ASKED_STORAGE, true).apply();
+                if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(
+                            this,
+                            new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            REQUEST_STORAGE_PERMISSION
+                    );
+                }
+            }
+        }
 
         // Ajusta padding conforme as “system bars” (status/navigation)
         View mainLayout = findViewById(R.id.main);
@@ -119,6 +143,14 @@ public class MainActivity extends AppCompatActivity {
 
         // Configura download no WebView
         webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            // Verifica se a permissão foi concedida
+            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q
+                    && ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permissão de armazenamento não concedida.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
             request.setMimeType(mimeType);
             request.addRequestHeader("User-Agent", userAgent);
@@ -133,6 +165,20 @@ public class MainActivity extends AppCompatActivity {
             dm.enqueue(request);
             Toast.makeText(getApplicationContext(), "Download iniciado...", Toast.LENGTH_LONG).show();
         });
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_STORAGE_PERMISSION) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(this, "Permissão de armazenamento concedida.", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "Permissão de armazenamento é necessária para baixar arquivos.", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     @Override
