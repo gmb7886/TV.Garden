@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Colégio Etapa"
+rootProject.name = "TV.Garden"
 include(":app")

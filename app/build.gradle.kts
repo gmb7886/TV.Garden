@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace = "com.marinov.colegioetapa"
+    namespace = "com.marinov.tvgarden"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.marinov.colegioetapa"
+        applicationId = "com.marinov.tvgarden"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
-        versionName = "1.3"
+        versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
