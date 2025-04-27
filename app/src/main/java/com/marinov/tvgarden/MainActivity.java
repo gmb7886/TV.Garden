@@ -4,12 +4,15 @@ import android.os.Build;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
+import android.widget.FrameLayout;
 import android.widget.Toast; // Mantido para toasts de download
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -52,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
+        // Habilita full-screen de vídeo
+        settings.setMediaPlaybackRequiresUserGesture(false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
@@ -79,6 +84,41 @@ public class MainActivity extends AppCompatActivity {
                 CookieSyncManager.getInstance().sync();
             }
         }
+
+        // Configura WebChromeClient para suportar vídeo em tela cheia
+        webView.setWebChromeClient(new WebChromeClient() {
+            private View customView;
+            private WebChromeClient.CustomViewCallback customViewCallback;
+            private int originalSystemUiVisibility;
+
+            @Override
+            public void onShowCustomView(View view, CustomViewCallback callback) {
+                // Entrar em full-screen
+                customView = view;
+                customViewCallback = callback;
+                originalSystemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
+                FrameLayout decor = (FrameLayout) getWindow().getDecorView();
+                decor.addView(customView, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT));
+                getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_FULLSCREEN |
+                                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+                                View.SYSTEM_UI_FLAG_IMMERSIVE);
+                webView.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onHideCustomView() {
+                // Sair do full-screen
+                FrameLayout decor = (FrameLayout) getWindow().getDecorView();
+                decor.removeView(customView);
+                getWindow().getDecorView().setSystemUiVisibility(originalSystemUiVisibility);
+                customViewCallback.onCustomViewHidden();
+                webView.setVisibility(View.VISIBLE);
+                customView = null;
+            }
+        });
 
         // Carrega o site se houver conexão
         if (isNetworkAvailable()) {
@@ -120,9 +160,16 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && webView.canGoBack()) {
-            webView.goBack();
-            return true;
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (webView.getVisibility() == View.GONE) {
+                // Se estiver em full-screen, sair dele
+                WebChromeClient.CustomViewCallback cb = null;
+                // O callback já tratou a remoção
+                return true;
+            } else if (webView.canGoBack()) {
+                webView.goBack();
+                return true;
+            }
         }
         return super.onKeyDown(keyCode, event);
     }
