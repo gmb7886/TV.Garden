@@ -4,7 +4,7 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "com.marinov.colegioetapa",
+  "applicationId": "com.marinov.tvgarden",
   "variantName": "release",
   "elements": [
     {
@@ -12,7 +12,7 @@
       "filters": [],
       "attributes": [],
       "versionCode": 1,
-      "versionName": "1.3",
+      "versionName": "1.0",
       "outputFile": "app-release.apk"
     }
   ],
