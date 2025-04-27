@@ -6,12 +6,11 @@ import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
-import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Toast;
+import android.widget.Toast; // Mantido para toasts de download
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
@@ -30,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Ajusta padding conforme as “system bars” (status/navigation)
+        // Ajusta padding conforme as system bars
         View mainLayout = findViewById(R.id.main);
         ViewCompat.setOnApplyWindowInsetsListener(mainLayout,
                 (v, insets) -> {
@@ -43,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
         // Inicializa o WebView
         webView = findViewById(R.id.webview);
         if (webView == null) {
-            Toast.makeText(this, "Erro: WebView não foi inicializado corretamente!", Toast.LENGTH_LONG).show();
+            // WebView não inicializado corretamente
             return;
         }
 
@@ -57,8 +56,8 @@ public class MainActivity extends AppCompatActivity {
             settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         }
 
-        // --- Configuração de cookies ---
-        final CookieManager cookieManager = CookieManager.getInstance();
+        // Configuração de cookies
+        CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             cookieManager.setAcceptThirdPartyCookies(webView, true);
@@ -67,8 +66,8 @@ public class MainActivity extends AppCompatActivity {
             CookieSyncManager.getInstance().startSync();
         }
 
-        // Restaurar cookies salvos, se houver
-        final SharedPreferences prefs = getSharedPreferences("cookies", MODE_PRIVATE);
+        // Restaurar cookies salvos
+        SharedPreferences prefs = getSharedPreferences("cookies", MODE_PRIVATE);
         String savedCookies = prefs.getString("saved_cookies", null);
         if (savedCookies != null) {
             for (String cookie : savedCookies.split(";")) {
@@ -80,38 +79,43 @@ public class MainActivity extends AppCompatActivity {
                 CookieSyncManager.getInstance().sync();
             }
         }
-        // --------------------------------
 
-        // Verificar se há conexão de rede antes de carregar o site
+        // Carrega o site se houver conexão
         if (isNetworkAvailable()) {
             webView.loadUrl(URL);
         } else {
-            Toast.makeText(this, "Sem conexão de rede!", Toast.LENGTH_SHORT).show();
+            // Sem conexão: sem exibição de Toast de erro
+            return;
         }
 
-        // Navegação interna, tratamento de erros e persistência de cookies
+        // Listener para downloads (mantém toasts de download)
+        webView.setDownloadListener((url, userAgent, contentDisposition, mimeType, contentLength) -> {
+            Toast.makeText(MainActivity.this, "Download iniciado: " + url, Toast.LENGTH_SHORT).show();
+            // Lógica de download a implementar
+        });
+
+        // WebViewClient para navegação interna e persistência de cookies
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                // Sincroniza cookies para armazenamento
+                // Sincroniza cookies
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     cookieManager.flush();
                 } else {
                     CookieSyncManager.getInstance().sync();
                 }
-                // Salva cookies no SharedPreferences
+                // Salva cookies
                 String allCookies = cookieManager.getCookie(URL);
                 prefs.edit().putString("saved_cookies", allCookies).apply();
             }
 
             @Override
-            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+            public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 super.onReceivedError(view, request, error);
-                Toast.makeText(MainActivity.this, "Erro ao carregar: " + error.getDescription(), Toast.LENGTH_LONG).show();
+                // Erro de carregamento ignorado (sem Toast de erro)
             }
         });
-
     }
 
     @Override
