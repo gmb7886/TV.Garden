@@ -1,32 +1,34 @@
 package com.marinov.tvgarden;
 
-import android.os.Build;
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
-import android.webkit.CookieSyncManager;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.webkit.WebChromeClient;
 import android.widget.FrameLayout;
-import android.widget.Toast; // Mantido para toasts de download
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.content.SharedPreferences;
 
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private static final String URL = "https://tv.garden/";
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -45,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
         // Inicializa o WebView
         webView = findViewById(R.id.webview);
         if (webView == null) {
-            // WebView não inicializado corretamente
             return;
         }
 
@@ -55,21 +56,13 @@ public class MainActivity extends AppCompatActivity {
         settings.setDomStorageEnabled(true);
         settings.setLoadWithOverviewMode(true);
         settings.setUseWideViewPort(true);
-        // Habilita full-screen de vídeo
         settings.setMediaPlaybackRequiresUserGesture(false);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        }
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
 
         // Configuração de cookies
         CookieManager cookieManager = CookieManager.getInstance();
         cookieManager.setAcceptCookie(true);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            cookieManager.setAcceptThirdPartyCookies(webView, true);
-        } else {
-            CookieSyncManager.createInstance(this);
-            CookieSyncManager.getInstance().startSync();
-        }
+        cookieManager.setAcceptThirdPartyCookies(webView, true);
 
         // Restaurar cookies salvos
         SharedPreferences prefs = getSharedPreferences("cookies", MODE_PRIVATE);
@@ -78,11 +71,7 @@ public class MainActivity extends AppCompatActivity {
             for (String cookie : savedCookies.split(";")) {
                 cookieManager.setCookie(URL, cookie.trim());
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                cookieManager.flush();
-            } else {
-                CookieSyncManager.getInstance().sync();
-            }
+            cookieManager.flush();
         }
 
         // Configura WebChromeClient para suportar vídeo em tela cheia
@@ -93,7 +82,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
-                // Entrar em full-screen
                 customView = view;
                 customViewCallback = callback;
                 originalSystemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
@@ -110,7 +98,6 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onHideCustomView() {
-                // Sair do full-screen
                 FrameLayout decor = (FrameLayout) getWindow().getDecorView();
                 decor.removeView(customView);
                 getWindow().getDecorView().setSystemUiVisibility(originalSystemUiVisibility);
@@ -124,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
         if (isNetworkAvailable()) {
             webView.loadUrl(URL);
         } else {
-            // Sem conexão: sem exibição de Toast de erro
             return;
         }
 
@@ -139,13 +125,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                // Sincroniza cookies
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    cookieManager.flush();
-                } else {
-                    CookieSyncManager.getInstance().sync();
-                }
-                // Salva cookies
+                cookieManager.flush();
                 String allCookies = cookieManager.getCookie(URL);
                 prefs.edit().putString("saved_cookies", allCookies).apply();
             }
@@ -153,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onReceivedError(WebView view, WebResourceRequest request, android.webkit.WebResourceError error) {
                 super.onReceivedError(view, request, error);
-                // Erro de carregamento ignorado (sem Toast de erro)
+                // Erro de carregamento ignorado
             }
         });
     }
@@ -162,9 +142,6 @@ public class MainActivity extends AppCompatActivity {
     public boolean onKeyDown(int keyCode, @NonNull KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (webView.getVisibility() == View.GONE) {
-                // Se estiver em full-screen, sair dele
-                WebChromeClient.CustomViewCallback cb = null;
-                // O callback já tratou a remoção
                 return true;
             } else if (webView.canGoBack()) {
                 webView.goBack();
@@ -205,8 +182,17 @@ public class MainActivity extends AppCompatActivity {
 
     // Verifica se há conexão de rede disponível
     private boolean isNetworkAvailable() {
-        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnected();
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+
+        Network network = cm.getActiveNetwork();
+        if (network == null) return false;
+
+        NetworkCapabilities caps = cm.getNetworkCapabilities(network);
+        return caps != null && (
+                caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
+                        caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)
+        );
     }
 }
